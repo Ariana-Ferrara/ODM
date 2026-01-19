@@ -135,6 +135,11 @@ class CrawlingSpider(CrawlSpider):
         stars_raw = response.css('a[data-testid="title-cast-item__actor"]::text').getall()
         item['stars'] = list(set(stars_raw)) if stars_raw else []
 
+        #Budget - by Chris
+        item['budget'] = response.css('[data-testid="title-boxoffice-budget"] .ipc-metadata-list-item__list-content-item::text').get()
+        item['grossworldwide'] = response.css('[data-testid="title-boxoffice-cumulativeworldwidegross"] .ipc-metadata-list-item__list-content-item::text').get()
+        item['openingweekend'] = response.css('[data-testid="title-boxoffice-openingweekenddomestic"] .ipc-metadata-list-item__list-content-item::text').get()
+
         #ariana
         # --- NOW HANDLE THE STAR LINK ---
         star_links = response.css('a[data-testid="title-cast-item__actor"]::attr(href)').getall()
