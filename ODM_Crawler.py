@@ -6,17 +6,19 @@ import re
 from scrapy.exceptions import DropItem, CloseSpider
 import json
 
+#chris and ariana
 class CrawlingSpider(CrawlSpider):
     name = "mycrawler"
     allowed_domains = ["www.imdb.com"]
     start_urls = ["https://www.imdb.com/search/title/?title_type=feature&release_date=2025-01-01,2026-01-31"]
     
+    #chris
     def __init__(self, *args, **kwargs):
         super(CrawlingSpider, self).__init__(*args, **kwargs)
         self.yielded_ids = set()
         self.item_count = 0
         self.max_items = 20
-
+    #chris and ariana
     rules = (
         # Match the main title page, even with 'ref' tags, but STOP there
         Rule(LinkExtractor(
@@ -27,7 +29,7 @@ class CrawlingSpider(CrawlSpider):
         # Follow search result pagination
         Rule(LinkExtractor(allow=r'/search/title/'), follow=True),
     )
-
+    #chris
     custom_settings = {
         # REMOVED THE PIPELINE - testing if that's the issue
         'DOWNLOAD_DELAY': 10,
@@ -49,55 +51,65 @@ class CrawlingSpider(CrawlSpider):
         'METAREFRESH_ENABLED': False,
         'HTTPERROR_ALLOWED_CODES': [301, 302],
     }
-
+    #ariana
     def parse_item(self, response):
         # close spider if we hit the limit
         if self.item_count >= self.max_items:
             CloseSpider
-
+        #ariana
         # Extract the ID first to check for duplicates
         movie_id_match = re.search(r'tt\d+', response.url)
         movie_id = movie_id_match.group() if movie_id_match else None
-
+        
+        #ariana
         # Handle duplicates (Only skip if seen in THIS run)
         if movie_id and movie_id in self.yielded_ids:
             self.logger.info(f"Skipping duplicate in current session: {movie_id}")
             return
-        
+        #ariana
         if movie_id:
             self.yielded_ids.add(movie_id)
-
+        
+        #chris and ariana
         # initialize the item and start filling it
         item = MovieItem()
 
+        #chris
         # --- movieID ---
         if movie_id:
             # REMOVE: self.yielded_ids.add(movie_id) 
             # REMOVE: self.item_count += 1
             item['movie_id'] = movie_id
-
+        
+        #chris
         #------ movie title ------
         item['title'] = response.css('[data-testid="hero__primary-text"]::text').get()
-
+        
+        #ariana
         #------ movie director ------
         item['director'] = response.css('a.ipc-metadata-list-item__list-content-item--link::text').get()
 
+        #ariana
         #------ movie writer ------
         writers_raw = response.css('li[data-testid="title-pc-principal-credit"]:contains("Writer") a.ipc-metadata-list-item__list-content-item--link::text').getall()
         item['writer'] = list(set(writers_raw)) if writers_raw else None
         
+        #chris
         #------ release date ------
         raw_date = response.css('[data-testid="title-details-releasedate"] a.ipc-metadata-list-item__list-content-item--link::text').get()
         if raw_date:
             item["release_date"] = raw_date.split('(')[0].strip() # This splits the string at the first "(" and takes the part before it
         
+        #chris
         #------ movie duration ------
         item["duration"] = response.css('[data-testid="title-techspec_runtime"] .ipc-metadata-list-item__list-content-item::text').get()
         
+        #ariana
         #------ production company ------
         companies = response.css('[data-testid="title-details-companies"] li a::text').getall()
         item['production_company'] = companies  # Yields: ['Fox 2000', 'Regency']
 
+        #ariana
         #------ genre ------
             # Extract JSON-LD metadata for reliable data collection
         json_text = response.xpath('//script[@type="application/ld+json"]/text()').get()
@@ -113,17 +125,19 @@ class CrawlingSpider(CrawlSpider):
         else:
             item['genres'] = []       
     
+        #ariana
         #------ character names ------
         roles_raw = response.css('div[class*="characters-list"] span::text').getall()
         item['roles'] = list(set(roles_raw)) if roles_raw else []
 
+        #ariana
         # --- final extraction step (e.g., actor names) ---
         stars_raw = response.css('a[data-testid="title-cast-item__actor"]::text').getall()
         item['stars'] = list(set(stars_raw)) if stars_raw else []
 
+        #ariana
         # --- NOW HANDLE THE STAR LINK ---
         star_links = response.css('a[data-testid="title-cast-item__actor"]::attr(href)').getall()
-
         if star_links:
             for link in star_links:
                 # We yield a request for EVERY actor found
@@ -133,13 +147,13 @@ class CrawlingSpider(CrawlSpider):
                     meta={'item': item.copy()}, # .copy() ensures each actor gets their own item instance
                     dont_filter=True 
                 )
-
         else:
             # If no star link, we MUST yield and jump to reviews here
             yield item
             reviews_url = f"https://www.imdb.com/title/{item['movie_id']}/reviews/"
             yield response.follow(reviews_url, callback=self.parse_reviews, meta={'movie_id': item['movie_id']})
 
+    #ariana
     def parse_star_details(self, response):
         item = response.meta['item']
         
@@ -158,6 +172,7 @@ class CrawlingSpider(CrawlSpider):
         reviews_url = f"https://www.imdb.com/title/{item['movie_id']}/reviews/"
         yield response.follow(reviews_url, callback=self.parse_reviews, meta={'movie_id': item['movie_id']})
 
+    #ariana
     def parse_reviews(self, response):
         movie_id = response.meta['movie_id']
         
