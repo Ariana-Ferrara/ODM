@@ -140,6 +140,8 @@ class CrawlingSpider(CrawlSpider):
         item['grossworldwide'] = response.css('[data-testid="title-boxoffice-cumulativeworldwidegross"] .ipc-metadata-list-item__list-content-item::text').get()
         item['openingweekend'] = response.css('[data-testid="title-boxoffice-openingweekenddomestic"] .ipc-metadata-list-item__list-content-item::text').get()
 
+
+
         #ariana
         # --- NOW HANDLE THE STAR LINK ---
         star_links = response.css('a[data-testid="title-cast-item__actor"]::attr(href)').getall()
@@ -152,6 +154,12 @@ class CrawlingSpider(CrawlSpider):
                     meta={'item': item.copy()}, # .copy() ensures each actor gets their own item instance
                     dont_filter=True 
                 )
+                
+            # --- ADD THIS AFTER THE FOR LOOP ENDS (Line 149) ---
+            # This triggers the review scraping exactly once per movie
+            reviews_url = f"https://www.imdb.com/title/{item['movie_id']}/reviews/"
+            yield response.follow(reviews_url, callback=self.parse_reviews, meta={'movie_id': item['movie_id']})
+
         else:
             # If no star link, we MUST yield and jump to reviews here
             yield item
@@ -162,20 +170,17 @@ class CrawlingSpider(CrawlSpider):
     def parse_star_details(self, response):
         item = response.meta['item']
         
-        # NEW: Targeted selector based on your inspection (image_07c4a8.jpg)
-        # This pulls 'Top 500' or the specific rank number
+        # 1. Pull the specific actor's name from the page header
+        actor_name = response.css('span.hero__primary-text::text').get()
+        item['actor_name'] = actor_name.strip() if actor_name else "Unknown"
+
+        # 2. Targeted selector for the rank (from image_07c4a8.jpg)
         rank = response.css('span.starmeter-current-rank::text').get()
-        
-        # CLEANUP: Remove extra whitespace or words if needed
         item['starmeter'] = rank.strip() if rank else None
 
-        # --- Finalize and Yield Movie ---
+        # 3. Finalize and Yield: This now creates one unique row per actor
         self.item_count += 1
         yield item
-
-        # --- JUMP TO REVIEWS (Moved from line 151) ---
-        reviews_url = f"https://www.imdb.com/title/{item['movie_id']}/reviews/"
-        yield response.follow(reviews_url, callback=self.parse_reviews, meta={'movie_id': item['movie_id']})
 
     #ariana
     def parse_reviews(self, response):
