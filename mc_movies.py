@@ -1,6 +1,5 @@
 import scrapy
 from scrapy.spiders import CrawlSpider, Rule
-from scrapy.linkextractors import LinkExtractor
 from Metacritic.items import MovieItem
 from scrapy_playwright.page import PageMethod
 
@@ -16,12 +15,24 @@ class CrawlingSpider(CrawlSpider):
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.5',
             'Referer': 'https://www.google.com/',
+        },
+    'FEEDS': {
+            'movies_data.json': {
+                'format': 'json',
+                'item_classes': ['Metacritic.items.MovieItem'],
+                'overwrite': True,
+                'encoding': 'utf8',
+                'indent': 4, # This makes the JSON pretty and readable
+            },
         }
+        
     }
 
+
+    #Starts scraper
     def start_requests(self):
-        for page in range(1, 5):
-            url = f"https://www.metacritic.com/browse/movie/?releaseYearMin=1910&releaseYearMax=2026&page={page}"
+        for page in range(1, 21):
+            url = f"https://www.metacritic.com/browse/movie/?releaseYearMin=2025&releaseYearMax=2026&page={page}"
             yield scrapy.Request(
                 url,
                 meta=dict(
@@ -32,6 +43,7 @@ class CrawlingSpider(CrawlSpider):
                 errback=self.errback,
             )
 
+    #Extracts movielinks
     async def parse_listing(self, response):
         page = response.meta["playwright_page"]
         await page.close()
@@ -46,14 +58,6 @@ class CrawlingSpider(CrawlSpider):
     async def errback(self, failure):
         page = failure.request.meta["playwright_page"]
         await page.close()
-
-    def parse_page(self, response):
-        """Debug method to see pagination"""
-        self.logger.info(f'========== Parsing page: {response.url} ==========')
-        
-        # Extract all links on the page for debugging
-        all_links = response.css('a::attr(href)').getall()
-        browse_links = [link for link in all_links if '/browse/movie/' in link and 'page=' in link]
 
     def parse_movie(self, response):
         item = MovieItem()
@@ -115,4 +119,3 @@ class CrawlingSpider(CrawlSpider):
                 item[key] = None
 
         yield item
-     
