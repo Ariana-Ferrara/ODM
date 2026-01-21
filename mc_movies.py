@@ -1,7 +1,9 @@
 import scrapy
-from scrapy.spiders import CrawlSpider, Rule
-from Metacritic.items import MovieItem
-from scrapy_playwright.page import PageMethod
+from scrapy.spiders import CrawlSpider
+from MetacriticNEW.items import MovieItem
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 class CrawlingSpider(CrawlSpider):
     name = "mc_movies"
@@ -16,83 +18,91 @@ class CrawlingSpider(CrawlSpider):
             'Accept-Language': 'en-US,en;q=0.5',
             'Referer': 'https://www.google.com/',
         },
-    'FEEDS': {
-            'movies_data.json': {
-                'format': 'json',
-                'item_classes': ['Metacritic.items.MovieItem'],
+        'FEEDS': {
+            'movies_dataMC.csv': {
+                'format': 'csv',
+                'item_classes': ['MetacriticNEW.items.MovieItem'],
                 'overwrite': True,
                 'encoding': 'utf8',
-                'indent': 4, # This makes the JSON pretty and readable
             },
         }
-        
     }
 
-
-    #Starts scraper
+    # Starts scraper
     def start_requests(self):
-        for page in range(1, 21):
-            url = f"https://www.metacritic.com/browse/movie/?releaseYearMin=2025&releaseYearMax=2026&page={page}"
+        for page in range(1, 60):
+            url = f"https://www.metacritic.com/browse/movie/?releaseYearMin=2023&releaseYearMax=2025&page={page}"
+            # NOTE: Using Selenium instead of Playwright
+            # The 'dont_filter=True' allows revisiting same URLs if needed
             yield scrapy.Request(
                 url,
-                meta=dict(
-                    playwright=True,
-                    playwright_include_page=True,
-                ),
                 callback=self.parse_listing,
-                errback=self.errback,
+                dont_filter=True
             )
 
-    #Extracts movielinks
-    async def parse_listing(self, response):
-        page = response.meta["playwright_page"]
-        await page.close()
+    # Extracts movie links
+    def parse_listing(self, response):
+        # NOTE: With Selenium middleware, response.meta['driver'] gives us access to the Selenium WebDriver
+        # This allows us to interact with the browser if needed (clicking, scrolling, etc.)
+        driver = response.meta.get('driver')
         
+        # Extract movie links using CSS selectors (same as before)
         movie_links = response.css('a[href*="/movie/"]::attr(href)').getall()
         
         for link in movie_links:
             if '/movie/' in link and '/browse/' not in link:
                 full_url = response.urljoin(link)
+                # NOTE: Regular Scrapy request for movie detail pages
+                # Selenium is only needed for pages that require JavaScript/browser interaction
                 yield scrapy.Request(full_url, callback=self.parse_movie)
 
-    async def errback(self, failure):
-        page = failure.request.meta["playwright_page"]
-        await page.close()
-
     def parse_movie(self, response):
+        # NOTE: This method doesn't need Selenium since the movie detail page loads normally
+        # All data is available in the HTML response
         item = MovieItem()
-        #MovieID from link
+        
+        # MovieID from link
         url_parts = response.url.split('/')
         item['movie_id'] = [part for part in url_parts if part][-1]
 
-        #ReleaseDate (see if can be changed to only release_date)
+        # ReleaseDate
         item['release_date'] = response.xpath('//span[contains(text(), "Release Date")]/following-sibling::span/text()').get()
        
-        #MovieTitle
+        # MovieTitle
         item["title"] = response.css("h1::text").get()
-        
         if item["title"]:
             item["title"] = item["title"].strip()
         
-        #ProductionCompany (joining them into single strip and removing white spaces)
-        item["production_company"] = ", ".join([company.strip() for company in response.xpath('//span[contains(text(), "Production Company")]/following-sibling::ul//span/text()').getall()] )
+        # ProductionCompany (joining them into single string and removing white spaces)
+        item["production_company"] = ", ".join([company.strip() for company in response.xpath('//span[contains(text(), "Production Company")]/following-sibling::ul//span/text()').getall()])
 
-        #Duration
+        # Duration
         item["duration"] = response.xpath('//span[contains(text(), "Duration")]/following-sibling::span/text()').get()
 
-        #Rating
+        # Rating
         item["rating"] = response.xpath('//span[contains(text(), "Rating")]/following-sibling::span/text()').get()
 
-        #Genres (Specifically targeting the buttons, removing white spaces and joining them into single strip)
-        item["genres"] =  ", ".join([genre.strip() for genre in response.xpath('//span[contains(text(), "Genres")]/following-sibling::ul//span[@class="c-globalButton_label"]/text()').getall()])
+        # Genres (Specifically targeting the buttons, removing white spaces and joining them into single string)
+        item["genres"] = ", ".join([genre.strip() for genre in response.xpath('//span[contains(text(), "Genres")]/following-sibling::ul//span[@class="c-globalButton_label"]/text()').getall()])
     
-        #Taglines
+        # Director
+        # NOTE: strip(',') removes commas that are sometimes included in the HTML text nodes
+        directors = response.xpath('//p[contains(., "Directed By")]//a[@href[contains(., "/person/")]]/text()').getall()
+        directors = list(dict.fromkeys([d.strip().strip(',').strip() for d in directors if d and d.strip()]))
+        item["director"] = ", ".join(directors) if directors else None
+        
+        # Writer  
+        writers = response.xpath('//p[contains(., "Written By")]//a[@href[contains(., "/person/")]]/text()').getall()
+        writers = list(dict.fromkeys([w.strip().strip(',').strip() for w in writers if w and w.strip()]))
+        item["writer"] = ", ".join(writers) if writers else None
+    
+        # Taglines
         item["tagline"] = response.xpath('//span[contains(text(), "Tagline")]/following-sibling::span/text()').get()
 
-        #Website
+        # Website
         item["website"] = response.xpath('//span[contains(text(), "Website")]/following-sibling::span/a/@href').get()
 
-        #Awards (Only getting name of the rewards they have actually won since there is also nominations)
+        # Awards (Only getting name of the awards they have actually won, not nominations)
         awards = []
         award_divs = response.css('div.c-productionAwardSummary_award')
 
@@ -100,20 +110,20 @@ class CrawlingSpider(CrawlSpider):
             festival = award_div.css('div.g-text-bold::text').get()
             count_text = award_div.xpath('./div[2]//text()').get()
             
-            # Check if there's at least 1 win
-            if festival and count_text and 'Win' in count_text:
+            # Check if there's at least 1 win and festival is not empty
+            if festival and festival.strip() and count_text and 'Win' in count_text:
                 awards.append(festival.strip())
 
-            # Join all awards into a single string
-            item["awards"] = ", ".join(awards) if awards else None
+        # NOTE: Join outside the loop to avoid creating the string multiple times
+        item["awards"] = ", ".join(awards) if awards else None
         
-        #Metascore
+        # Metascore
         item["metascore"] = response.css('div.c-siteReviewScore span::text').get()
 
-        #UserScore
+        # UserScore
         item["user_score"] = response.css('div.c-siteReviewScore_user span::text').get()
 
-        # Clean empty values
+        # Clean empty values - set to None instead of empty strings or empty lists
         for key in item.keys():
             if not item[key] or item[key] == []:
                 item[key] = None
