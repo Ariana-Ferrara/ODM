@@ -75,3 +75,4 @@ The database follows a star-schema-inspired relational model:
 **Stefan Spruijt**
 - Created Scrapy Spider for MetaCritic
 - Implemented Bright data and Selenium into MetaCritic scraper
+- Merged IMDB and Metacritic data, and put it into a database
