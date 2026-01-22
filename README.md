@@ -1,2 +1,76 @@
-# ODM
-Online Data Mining Course
+# Movie Success Determinants: A Cross-Platform Data Integration Project
+Team members: Ahmed Farag Ramadan Abdelsalam, Chris Goedhart, Stefan Spruijt, Ariana Ferrara
+
+## Business Objective
+As Sony Pictures, our strategic goal is to minimize investment risk and maximize box-office returns. This project answers the core question: "What are the key determinants of a movie's success across financial performance and critical reception?"
+
+To answer this, we engineered an automated data pipeline to collect, clean, and integrate high-fidelity data from three distinct industry pillars: IMDb, Box Office Mojo, and Metacritic.
+
+## Tech Utilized
+- Data Acquisition: Scrapy (Primary Crawler), Selenium (Dynamic Content), Bright Data (Proxy Management).
+- Data Processing: Python, Pandas (ETL & Schema Mapping).
+- Database: SQLite (Relational Storage).
+- Architecture: Entity Relationship Diagram (ERD) designed for relational integrity.
+
+## Project Architecture
+The project was divided into specialized roles to ensure high-quality data extraction and structured integration:
+
+1. Database & Infrastructure
+- ERD Design: Architected a relational schema with 10 tables to handle one-to-many and many-to-many relationships (e.g., Junction tables for Directors, Writers, and Cast), along with ERD explanation.
+- Schema Enforcement: Created a master ODM_project.db with strict Primary Key and Foreign Key constraints to maintain data integrity.
+- Dynamic ID Engineering: Developed a Deterministic Slug-based ID system (title-year-slug) to allow seamless merging of data from different sources without relying on platform-specific IDs.
+
+2. Distributed Data Scraping
+Each member engineered a custom scraper for a specific target site to gather a holistic dataset:
+
+- IMDb Scraper: Chris GoedHart and Ariana Ferrara
+
+- Box Mojo Scraper: Ahmed Farag Ramadan Abdelsalam
+
+- Metacritic Scraper: Stefan Spruijt
+
+3. Data Integration & ETL
+Members were responsible for mapping their specific raw JSON/CSV outputs to the master database schema, involving:
+- Naming Alignment: Standardizing variables (e.g., grossworldwide to gross_worldwide).
+- Character Mapping: Index-pairing actors to their specific roles in the MovieCast table.
+- Currency Sanitization: Converting varied international currency strings into clean FLOAT values for analysis.
+
+## Database Schema (ERD Description)
+The database follows a star-schema-inspired relational model:
+- Core: Movie table (Master attributes like duration, rating, and genres).
+- Financials: Sales table linked via movie_id.
+- People: Film_Crew master list linked via junction tables (Director, Writer, MovieCast) to handle complex credits.
+- Sentiment: Separate UserReview and ExpertReview tables to compare public vs. professional reception.
+
+## How to Run
+1. Initialize Schema: Run database_setup.py to create the empty ODM_project.db.
+2. Run Scrapers: Execute individual Scrapy spiders for IMDb, Box Office Mojo, and Metacritic.
+3. Load Data: Run the ETL scripts provided by each member to append cleaned data into the master database.
+
+
+# Team Responsibilities:
+
+**Ariana Ferrara:**
+- Created ERD tables, and ERD explanation
+- Worked alongside Chris Goedhart to create Scrapy Spider for IMDb
+- Created an empty database in SQLite matching ERD (schema enforcement and dynamic ID engineering)
+- Pushed IMDb scraper information into the main database
+
+
+
+**!!!! need to add this info to ur roles if u were able to do so!!!**
+**- matched team naming conventions and pushed boxmojo/metacritic scraper information into the main database**
+
+
+
+**Chris Goedhart:**
+- Worked alongside Ariana Ferrara to create Scrapy Spider for IMDb
+- Implemented Bright data and Selenium into IMDb scraper
+
+**Ahmed Farag Ramadan Abdelsalam:**
+- Created Scrapy Spider for Box Mojo
+- Implemented Bright data and Selenium into BoxMojo scraper
+
+**Stefan Spruijt**
+- Created Scrapy Spider for MetaCritic
+- Implemented Bright data and Selenium into MetaCritic scraper
