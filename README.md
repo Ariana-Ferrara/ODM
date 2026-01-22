@@ -13,8 +13,6 @@ To answer this, we engineered an automated data pipeline to collect, clean, and 
 - Architecture: Entity Relationship Diagram (ERD) designed for relational integrity.
 
 ## Project Architecture
-The project was divided into specialized roles to ensure high-quality data extraction and structured integration:
-
 1. Database & Infrastructure
 - ERD Design: Architected a relational schema with 10 tables to handle one-to-many and many-to-many relationships (e.g., Junction tables for Directors, Writers, and Cast), along with ERD explanation.
 - Schema Enforcement: Created a master ODM_project.db with strict Primary Key and Foreign Key constraints to maintain data integrity.
