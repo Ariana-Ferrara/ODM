@@ -23,7 +23,7 @@ To answer this, we engineered an automated data pipeline to collect, clean, and 
 
 Each member engineered a custom scraper for a specific target site to gather a holistic dataset:
 
-- IMDb Scraper: Chris GoedHart and Ariana Ferrara
+- IMDb Scraper: Chris Goedhart and Ariana Ferrara
 
 - Box Mojo Scraper: Ahmed Farag Ramadan Abdelsalam
 
