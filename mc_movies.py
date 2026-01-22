@@ -32,7 +32,6 @@ class CrawlingSpider(CrawlSpider):
     def start_requests(self):
         for page in range(1, 60):
             url = f"https://www.metacritic.com/browse/movie/?releaseYearMin=2023&releaseYearMax=2025&page={page}"
-            # NOTE: Using Selenium instead of Playwright
             # The 'dont_filter=True' allows revisiting same URLs if needed
             yield scrapy.Request(
                 url,
@@ -42,8 +41,8 @@ class CrawlingSpider(CrawlSpider):
 
     # Extracts movie links
     def parse_listing(self, response):
-        # NOTE: With Selenium middleware, response.meta['driver'] gives us access to the Selenium WebDriver
-        # This allows us to interact with the browser if needed (clicking, scrolling, etc.)
+        # With Selenium middleware, response.meta['driver'] gives us access to the Selenium WebDriver
+        # This allows to interact with the browser if needed (clicking, scrolling, etc.)
         driver = response.meta.get('driver')
         
         # Extract movie links using CSS selectors (same as before)
@@ -114,7 +113,7 @@ class CrawlingSpider(CrawlSpider):
             if festival and festival.strip() and count_text and 'Win' in count_text:
                 awards.append(festival.strip())
 
-        # NOTE: Join outside the loop to avoid creating the string multiple times
+        #Join outside the loop to avoid creating the string multiple times
         item["awards"] = ", ".join(awards) if awards else None
         
         # Metascore
