@@ -1,75 +1,95 @@
-# Scrapy settings for MetacriticNEW project
+# Scrapy settings for ODM_Group1 project
+#
+# For simplicity, this file contains only settings considered important or
+# commonly used. You can find more settings consulting the documentation:
+#
+#     https://docs.scrapy.org/en/latest/topics/settings.html
+#     https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
+#     https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 
-BOT_NAME = "MetacriticNEW"
+BOT_NAME = 'ODM_Group1'
+SPIDER_MODULES = ['ODM_Group1.spiders']
+NEWSPIDER_MODULE = 'ODM_Group1.spiders'
 
-SPIDER_MODULES = ["MetacriticNEW.spiders"]
-NEWSPIDER_MODULE = "MetacriticNEW.spiders"
+
+# Crawl responsibly by identifying yourself (and your website) on the user-agent
+#USER_AGENT = "ODM_Group1 (+http://www.yourdomain.com)"
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = False
 
-# Maximum concurrent requests
+# Configure maximum concurrent requests performed by Scrapy (default: 16)
 CONCURRENT_REQUESTS = 16
 CONCURRENT_REQUESTS_PER_DOMAIN = 16
 
-# Download delay between requests (seconds)
-# Helps avoid getting blocked
+# Configure a delay for requests for the same website (default: 0)
+# See https://docs.scrapy.org/en/latest/topics/settings.html#download-delay
+# See also autothrottle settings and docs
 DOWNLOAD_DELAY = 2 
 RANDOMIZE_DOWNLOAD_DELAY = True
 
-# Disable cookies
+# The download delay setting will honor only one of:
+
+
+# Disable cookies (enabled by default)
 #COOKIES_ENABLED = False
 
-# Disable Telnet Console
+# Disable Telnet Console (enabled by default)
 #TELNETCONSOLE_ENABLED = False
 
-# Override default request headers
+# Override the default request headers:
 #DEFAULT_REQUEST_HEADERS = {
 #    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
 #    "Accept-Language": "en",
 #}
 
-# Spider middlewares
+# Enable or disable spider middlewares
+# See https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 #SPIDER_MIDDLEWARES = {
-#    "MetacriticNEW.middlewares.MetacriticnewSpiderMiddleware": 543,
+#    "ODM_Group1.middlewares.OdmGroup1SpiderMiddleware": 543,
 #}
 
-# Downloader middlewares
-# Custom Selenium middleware with BrightData proxy authentication
-# Creates Chrome browser with BrightData proxy
-# Processes all requests through browser
-# Handles proxy authentication automatically
-# Makes driver available via response.meta['driver']
 DOWNLOADER_MIDDLEWARES = {
-    'MetacriticNEW.middlewares.SeleniumBrightDataMiddleware': 800,
+    'ODM_Group1.middlewares.SeleniumBrightDataMiddleware': 800,
+    'scrapy.downloadermiddlewares.useragent.UserAgentMiddleware': None,
 }
 
-# Required packages:
-# pip install selenium
-# pip install selenium-wire (for proxy authentication support)
-# Install chromedriver: https://chromedriver.chromium.org/downloads
-# Or use: pip install webdriver-manager (auto-manages chromedriver)
+# Add your credentials here
+#custom proxy string
 
-# Item pipelines
-#ITEM_PIPELINES = {
-#    "MetacriticNEW.pipelines.MetacriticnewPipeline": 300,
+# Enable or disable extensions
+# See https://docs.scrapy.org/en/latest/topics/extensions.html
+#EXTENSIONS = {
+#    "scrapy.extensions.telnet.TelnetConsole": None,
 #}
 
-# AutoThrottle extension
-# Useful with Selenium to avoid overloading browser
+# Configure item pipelines
+# See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
+ITEM_PIPELINES = {}
+#}
+
+# Enable and configure the AutoThrottle extension (disabled by default)
+# See https://docs.scrapy.org/en/latest/topics/autothrottle.html
 AUTOTHROTTLE_ENABLED = False
+# The initial download delay
 #AUTOTHROTTLE_START_DELAY = 5
+# The maximum download delay to be set in case of high latencies
 #AUTOTHROTTLE_MAX_DELAY = 60
+# The average number of requests Scrapy should be sending in parallel to
+# each remote server
 #AUTOTHROTTLE_TARGET_CONCURRENCY = 1.0
+# Enable showing throttling stats for every response received:
 #AUTOTHROTTLE_DEBUG = False
 
-# HTTP caching
-# Useful during development to avoid repeated requests
+# Enable and configure HTTP caching (disabled by default)
+# See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html#httpcache-middleware-settings
 #HTTPCACHE_ENABLED = True
 #HTTPCACHE_EXPIRATION_SECS = 0
 #HTTPCACHE_DIR = "httpcache"
 #HTTPCACHE_IGNORE_HTTP_CODES = []
 #HTTPCACHE_STORAGE = "scrapy.extensions.httpcache.FilesystemCacheStorage"
+
+# Set settings whose default value is deprecated to a future-proof value
 
 # Feed export encoding
 # UTF-8 ensures proper encoding of special characters in CSV/JSON

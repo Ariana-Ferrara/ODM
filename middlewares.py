@@ -4,16 +4,21 @@
 # https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 
 from scrapy import signals
+from scrapy import signals
 from scrapy.http import HtmlResponse
 from selenium import webdriver
 from seleniumwire import webdriver as wire_webdriver  # Selenium-wire for proxy auth
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+from seleniumwire.utils import decode
 import logging
+import time
 
 # useful for handling different item types with a single interface
 from itemadapter import is_item, ItemAdapter
 
 
-class MetacriticnewSpiderMiddleware:
+class OdmGroup1SpiderMiddleware:
     # Not all methods need to be defined. If a method is not defined,
     # scrapy acts as if the spider middleware does not modify the
     # passed objects.
@@ -60,7 +65,7 @@ class MetacriticnewSpiderMiddleware:
         spider.logger.info("Spider opened: %s" % spider.name)
 
 
-class MetacriticnewDownloaderMiddleware:
+class OdmGroup1DownloaderMiddleware:
     # Not all methods need to be defined. If a method is not defined,
     # scrapy acts as if the downloader middleware does not modify the
     # passed objects.
@@ -106,7 +111,6 @@ class MetacriticnewDownloaderMiddleware:
     def spider_opened(self, spider):
         spider.logger.info("Spider opened: %s" % spider.name)
 
-
 class SeleniumBrightDataMiddleware:
     # Selenium middleware with BrightData proxy support
     # Creates Chrome WebDriver with BrightData proxy authentication
@@ -127,44 +131,36 @@ class SeleniumBrightDataMiddleware:
         return middleware
     
     def spider_opened(self, spider):
-        # Creates Selenium WebDriver when spider opens
-        # Configures BrightData proxy with authentication
-        # Uses selenium-wire for authenticated proxy support
-        
-        # BrightData proxy configuration
         proxy_url = 'http://brd-customer-hl_79cc5ce7-zone-proxygroup1:lv505da0ax0k@brd.superproxy.io:33335'
         
-        # Seleniumwire proxy configuration
-        # Extends Selenium to support authenticated proxies
         seleniumwire_options = {
             'proxy': {
                 'http': proxy_url,
                 'https': proxy_url,
-                'no_proxy': 'localhost,127.0.0.1'
             },
-            'connection_timeout': 300,
-            'read_timeout': 300
+            'verify_ssl': False,
+            'suppress_connection_errors': True,
         }
         
-        # Chrome options for browser configuration
         chrome_options = webdriver.ChromeOptions()
-        chrome_options.add_argument('--no-sandbox')  # Required for some environments
-        chrome_options.add_argument('--disable-dev-shm-usage')  # Overcome limited resources
-        chrome_options.add_argument('--disable-gpu')  # Disable GPU acceleration
-        chrome_options.add_argument('--window-size=1920,1080')  # Set window size
         
-        # User agent matching Scrapy settings
-        chrome_options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
-        
-        # Create Chrome driver with seleniumwire and proxy
+        chrome_options.add_argument('--ignore-certificate-errors') # Fixes "Not Secure"
+        chrome_options.add_argument('--ignore-ssl-errors')
+        chrome_options.add_argument('--window-size=1920,1080')
+        chrome_options.add_argument('--allow-running-insecure-content')
+        chrome_options.add_argument('--disable-web-security')
+        chrome_options.add_argument('--ignore-urlfetcher-cert-requests')
+        #chrome_options.add_argument('--headless=new')  #Comment this out if you want to see the screen and selenium action
+
+
+        service = Service(ChromeDriverManager().install())
+
         self.driver = wire_webdriver.Chrome(
+            service=service,
             options=chrome_options,
             seleniumwire_options=seleniumwire_options
         )
-        
-        # Set page load and script timeouts
-        self.driver.set_page_load_timeout(120)  # 2 minutes for page load
-        self.driver.set_script_timeout(120)  # 2 minutes for scripts
+
     
     def spider_closed(self, spider):
         # Closes browser when spider finishes
@@ -172,38 +168,33 @@ class SeleniumBrightDataMiddleware:
             self.driver.quit()
     
     def process_request(self, request, spider):
-        # Processes each request through Selenium browser
-        # Loads URL, waits for page load, returns page source
-        # Driver passed in response.meta['driver'] for spider access
-        
-        if self.driver is None:
+        if not self.driver:
             return None
         
         try:
-            # Load page in browser
+            # Tell the driver to load the URL
             self.driver.get(request.url)
             
-            # Wait for page elements to load
-            self.driver.implicitly_wait(30)
+            # Waits for Bright Data to tunnel the connection
+            time.sleep(5) 
+            self.driver.implicitly_wait(20)
             
-            # Get rendered page source after JavaScript execution
-            body = self.driver.page_source
-            
-            # Create Scrapy response from rendered HTML
-            # Driver available in meta for additional interactions
-            return HtmlResponse(
+            # Create the response and manually attach the driver
+            response = HtmlResponse(
                 url=request.url,
-                body=body,
+                body=self.driver.page_source,
                 encoding='utf-8',
                 request=request,
                 status=200,
-                meta={'driver': self.driver}
             )
             
+            response.meta['driver'] = self.driver   #Places the driver into meta
+            return response
+            
         except Exception as e:
-            # Return None on error, allows Scrapy to retry or skip
+            spider.logger.error(f"Middleware critical failure: {e}")
             return None
-    
+        
     def process_response(self, request, response, spider):
         # Returns response as-is
         # All processing done in process_request
