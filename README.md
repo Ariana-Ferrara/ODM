@@ -14,11 +14,13 @@ To answer this, we engineered an automated data pipeline to collect, clean, and 
 
 ## Project Architecture
 1. Database & Infrastructure
+
 - ERD Design: Architected a relational schema with 10 tables to handle one-to-many and many-to-many relationships (e.g., Junction tables for Directors, Writers, and Cast), along with ERD explanation.
 - Schema Enforcement: Created a master ODM_project.db with strict Primary Key and Foreign Key constraints to maintain data integrity.
 - Dynamic ID Engineering: Developed a Deterministic Slug-based ID system (title-year-slug) to allow seamless merging of data from different sources without relying on platform-specific IDs.
 
 2. Distributed Data Scraping
+
 Each member engineered a custom scraper for a specific target site to gather a holistic dataset:
 
 - IMDb Scraper: Chris GoedHart and Ariana Ferrara
@@ -28,6 +30,7 @@ Each member engineered a custom scraper for a specific target site to gather a h
 - Metacritic Scraper: Stefan Spruijt
 
 3. Data Integration & ETL
+   
 Members were responsible for mapping their specific raw JSON/CSV outputs to the master database schema, involving:
 - Naming Alignment: Standardizing variables (e.g., grossworldwide to gross_worldwide).
 - Character Mapping: Index-pairing actors to their specific roles in the MovieCast table.
